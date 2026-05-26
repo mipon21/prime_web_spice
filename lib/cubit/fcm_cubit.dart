@@ -30,12 +30,12 @@ class SetFcmCubit extends Cubit<SetFcmState> {
   Future setFcm() async {
     emit(SetFcmStateInProgress());
     try {
-      final setFcmKey = await _setfcmkey.SetFcmRepo();
+      await _setfcmkey.SetFcmRepo();
       emit(
-        SetFcmStateInSussess(useAuthtoken: false, setFcm: setFcmKey),
+        SetFcmStateInSussess(useAuthtoken: false, setFcm: 'registered'),
       );
     } catch (e) {
-      SetFcmInError(error: e.toString());
+      emit(SetFcmInError(error: e.toString()));
     }
   }
 }

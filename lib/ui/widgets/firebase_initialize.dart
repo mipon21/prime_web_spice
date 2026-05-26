@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
+import 'package:prime_web/services/notification_navigation_service.dart';
 import 'package:prime_web/utils/constants.dart';
 
 @pragma('vm:entry-point')
@@ -19,11 +20,12 @@ class FirebaseInitialize {
   final _firebaseMessaging = FirebaseMessaging.instance;
   late FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
   late AndroidNotificationChannel channel;
+
   Future<void> initFirebaseState(BuildContext context) async {
     channel = const AndroidNotificationChannel(
-      androidPackageName,
-      appName,
-      description: appName,
+      'order_notifications',
+      'Order updates',
+      description: 'Order status and delivery notifications',
       importance: Importance.high,
     );
 
@@ -32,6 +34,7 @@ class FirebaseInitialize {
         .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(channel);
+
     const initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher_squircle');
     final initializationSettingsDarwin = DarwinInitializationSettings(
@@ -45,8 +48,11 @@ class FirebaseInitialize {
       iOS: initializationSettingsDarwin,
     );
 
-    // TODO(J): is it incomplete: onSelectNotification
-    Future<void> onSelectNotification(String? payload) async {}
+    Future<void> onSelectNotification(String? payload) async {
+      if (payload != null && payload.isNotEmpty) {
+        NotificationNavigationService.onNavigateToOrder?.call(payload);
+      }
+    }
 
     await flutterLocalNotificationsPlugin.initialize(
       initializationSettings,
@@ -55,7 +61,6 @@ class FirebaseInitialize {
         switch (notificationResponse.notificationResponseType) {
           case NotificationResponseType.selectedNotification:
             onSelectNotification(notificationResponse.payload);
-
           case NotificationResponseType.selectedNotificationAction:
             break;
         }
@@ -67,12 +72,12 @@ class FirebaseInitialize {
         .resolvePlatformSpecificImplementation<
             IOSFlutterLocalNotificationsPlugin>()
         ?.requestPermissions(alert: true, badge: true, sound: true);
-    await flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(channel);
 
-    Future<void> generateSimpleNotification(String title, String msg) async {
+    Future<void> generateSimpleNotification(
+      String title,
+      String msg, {
+      String? payload,
+    }) async {
       final androidPlatformChannelSpecifics = AndroidNotificationDetails(
         channel.id,
         channel.name,
@@ -89,10 +94,11 @@ class FirebaseInitialize {
         title,
         msg,
         platformChannelSpecifics,
+        payload: payload,
       );
     }
 
-    Future<String> _downloadAndSaveFile(String url, String fileName) async {
+    Future<String> downloadAndSaveFile(String url, String fileName) async {
       final directory = await getApplicationDocumentsDirectory();
       final filePath = '${directory.path}/$fileName';
       final response = await http.get(Uri.parse(url));
@@ -104,10 +110,11 @@ class FirebaseInitialize {
     Future<void> generateImageNotification(
       String title,
       String msg,
-      String image,
-    ) async {
-      final largeIconPath = await _downloadAndSaveFile(image, 'largeIcon');
-      final bigPicturePath = await _downloadAndSaveFile(image, 'bigPicture');
+      String image, {
+      String? payload,
+    }) async {
+      final largeIconPath = await downloadAndSaveFile(image, 'largeIcon');
+      final bigPicturePath = await downloadAndSaveFile(image, 'bigPicture');
       final bigPictureStyleInformation = BigPictureStyleInformation(
         FilePathAndroidBitmap(bigPicturePath),
         hideExpandedLargeIcon: true,
@@ -132,39 +139,55 @@ class FirebaseInitialize {
         title,
         msg,
         platformChannelSpecifics,
+        payload: payload,
       );
     }
 
-    await _firebaseMessaging.getInitialMessage().then((message) {
-      if (message != null) {}
-    });
+    String? payloadFromMessage(RemoteMessage message) {
+      final urlPath = message.data['url_path'];
+      if (urlPath != null && urlPath.isNotEmpty) {
+        return urlPath;
+      }
+      final orderId = message.data['order_id'];
+      if (orderId != null && orderId.isNotEmpty) {
+        return '/my-orders/$orderId';
+      }
+      return null;
+    }
+
+    final initialMessage = await _firebaseMessaging.getInitialMessage();
+    if (initialMessage != null) {
+      NotificationNavigationService.handleMessage(initialMessage);
+    }
 
     await _firebaseMessaging.getToken().then((value) {
-      log('token==$value');
+      log('FCM token==$value');
     });
 
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       log('${message.toMap()}');
 
-      final notification = message.notification!;
-      final title = notification.title ?? '';
-      final body = notification.body ?? '';
+      final notification = message.notification;
+      final title = notification?.title ?? message.data['title'] ?? '';
+      final body = notification?.body ?? message.data['body'] ?? '';
+      final payload = payloadFromMessage(message);
       var image = '';
 
-      image = defaultTargetPlatform == TargetPlatform.android
-          ? notification.android!.imageUrl ?? ''
-          : notification.apple!.imageUrl ?? '';
+      if (notification != null) {
+        image = defaultTargetPlatform == TargetPlatform.android
+            ? notification.android?.imageUrl ?? ''
+            : notification.apple?.imageUrl ?? '';
+      }
 
-      if (image != '') {
-        generateImageNotification(title, body, image);
+      if (image.isNotEmpty) {
+        generateImageNotification(title, body, image, payload: payload);
       } else {
-        generateSimpleNotification(title, body);
+        generateSimpleNotification(title, body, payload: payload);
       }
     });
 
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) async {
-      final notification = message.notification!;
-      final body = notification.body ?? '';
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      NotificationNavigationService.handleMessage(message);
     });
   }
 }

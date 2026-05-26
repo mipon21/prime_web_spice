@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
  xmlns:tools="http://schemas.android.com/tools"
-    package="com.my.smart.nakla">
+    package="com.spice.box.skylonit">
     <queries>
       <!-- If your app opens https URLs -->
       <intent>
@@ -28,6 +28,7 @@
       </intent>
       </queries>
       <uses-permission android:name="android.permission.INTERNET" /> <!-- this is mandatory -->
+      <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
       
       <!-- uncomment required permissions here -->
@@ -49,10 +50,8 @@
       <uses-permission android:name="android.permission.AUDIO_CAPTURE" />
       <uses-permission android:name="android.permission.BLUETOOTH" />
 
-      <!-- <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" /> -->
-      <!-- <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" /> -->
-      <!-- <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" /> -->
-      <!-- end  permissions from  list if using in your website -->
+      <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+      <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
       
    <application
@@ -98,6 +97,12 @@
 
             <!-- Deep linking -->
             <meta-data android:name="flutter_deeplinking_enabled" android:value="true" />
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="smartnakla" android:host="order" />
+            </intent-filter>
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />

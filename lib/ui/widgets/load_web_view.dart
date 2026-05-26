@@ -16,6 +16,9 @@ import 'package:prime_web/cubit/get_setting_cubit.dart';
 import 'package:prime_web/main.dart';
 import 'package:prime_web/provider/navigation_bar_provider.dart';
 import 'package:prime_web/provider/theme_provider.dart';
+import 'package:prime_web/services/app_permissions_service.dart';
+import 'package:prime_web/services/foodappi_fcm_service.dart';
+import 'package:prime_web/services/notification_navigation_service.dart';
 import 'package:prime_web/ui/widgets/widgets.dart';
 import 'package:prime_web/utils/constants.dart';
 import 'package:provider/provider.dart';
@@ -52,10 +55,14 @@ class _LoadWebViewState extends State<LoadWebView>
   late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
   bool _validURL = false;
   bool canGoBack = false;
+  String? _lastSyncedAuthToken;
+  String? _printRestoreUrl;
+  Timer? _authSyncTimer;
 
   @override
   void initState() {
     super.initState();
+    NotificationNavigationService.onNavigateToOrder = _navigateToOrderPath;
     NoInternet.initConnectivity().then(
       (value) => setState(() {
         _connectionStatus = value;
@@ -101,9 +108,154 @@ class _LoadWebViewState extends State<LoadWebView>
 
   @override
   void dispose() {
+    _authSyncTimer?.cancel();
+    if (NotificationNavigationService.onNavigateToOrder ==
+        _navigateToOrderPath) {
+      NotificationNavigationService.onNavigateToOrder = null;
+    }
     _connectivitySubscription.cancel();
     webViewController = null;
     super.dispose();
+  }
+
+  void _navigateToOrderPath(String path) {
+    final baseUri = Uri.tryParse(widget.url);
+    if (baseUri == null || webViewController == null) {
+      return;
+    }
+
+    final normalizedPath = path.startsWith('/') ? path : '/$path';
+    final basePath = baseUri.path.endsWith('/')
+        ? baseUri.path.substring(0, baseUri.path.length - 1)
+        : baseUri.path;
+
+    final target = baseUri.replace(
+      path: '$basePath$normalizedPath'.replaceAll('//', '/'),
+    );
+
+    webViewController!.loadUrl(
+      urlRequest: URLRequest(url: WebUri(target.toString())),
+    );
+  }
+
+  Future<void> _restorePageAfterPrint(InAppWebViewController controller) async {
+    final restoreUrl = _printRestoreUrl;
+    _printRestoreUrl = null;
+    if (restoreUrl == null || restoreUrl.isEmpty) {
+      return;
+    }
+
+    await controller.loadUrl(
+      urlRequest: URLRequest(url: WebUri(restoreUrl)),
+    );
+  }
+
+  Future<Map<String, bool>> _handlePrintReceipt(
+    InAppWebViewController controller,
+    List<dynamic> arguments,
+  ) async {
+    try {
+      final html = arguments.isNotEmpty ? arguments.first?.toString() : null;
+      if (html == null || html.isEmpty) {
+        await controller.printCurrentPage();
+        return {'ok': false};
+      }
+
+      final currentUrl = (await controller.getUrl())?.toString() ?? widget.url;
+      _printRestoreUrl = currentUrl;
+
+      await controller.loadData(
+        data: html,
+        mimeType: 'text/html',
+        encoding: 'utf8',
+        baseUrl: WebUri(currentUrl),
+        historyUrl: WebUri(currentUrl),
+      );
+
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+
+      final printJob = await controller.printCurrentPage();
+      if (printJob != null) {
+        printJob.onComplete = (bool completed, String? error) async {
+          await _restorePageAfterPrint(controller);
+        };
+      } else {
+        await Future<void>.delayed(const Duration(seconds: 2));
+        await _restorePageAfterPrint(controller);
+      }
+
+      return {'ok': true};
+    } catch (e, stackTrace) {
+      log('primePrintReceipt failed: $e');
+      log('StackTrace: $stackTrace');
+      await _restorePageAfterPrint(controller);
+      return {'ok': false};
+    }
+  }
+
+  Future<void> _syncAuthFromWebView() async {
+    if (webViewController == null) {
+      return;
+    }
+
+    try {
+      final raw = await webViewController!.evaluateJavascript(
+        source: '''
+          (function() {
+            try {
+              var stored = localStorage.getItem('vuex');
+              if (!stored) return JSON.stringify({loggedIn:false, token:null});
+              var data = JSON.parse(stored);
+              var token = data.auth && data.auth.authToken ? data.auth.authToken : null;
+              return JSON.stringify({loggedIn: !!token, token: token});
+            } catch (e) {
+              return JSON.stringify({loggedIn:false, token:null});
+            }
+          })();
+        ''',
+      );
+
+      if (raw == null) {
+        return;
+      }
+
+      var jsonString = raw.toString();
+      if (jsonString.startsWith('"') && jsonString.endsWith('"')) {
+        jsonString = jsonString.substring(1, jsonString.length - 1);
+        jsonString = jsonString.replaceAll(r'\"', '"');
+      }
+
+      final loggedIn = jsonString.contains('"loggedIn":true') ||
+          jsonString.contains('"loggedIn": true');
+      final tokenMatch = RegExp(r'"token":"([^"]+)"').firstMatch(jsonString);
+      final token = tokenMatch?.group(1);
+
+      if (token != null && token.isNotEmpty && token != _lastSyncedAuthToken) {
+        _lastSyncedAuthToken = token;
+        await FoodappiFcmService.onAuthChanged(
+          loggedIn: true,
+          authToken: token,
+        );
+        return;
+      }
+
+      if (!loggedIn && _lastSyncedAuthToken != null) {
+        await FoodappiFcmService.onAuthChanged(loggedIn: false);
+        _lastSyncedAuthToken = null;
+      }
+    } catch (e, stackTrace) {
+      log('Auth sync from WebView failed: $e');
+      log('StackTrace: $stackTrace');
+    }
+  }
+
+  void _startAuthSync() {
+    _authSyncTimer?.cancel();
+    _authSyncTimer = Timer.periodic(
+      const Duration(seconds: 5),
+      (_) => _syncAuthFromWebView(),
+    );
+    _syncAuthFromWebView();
   }
 
   final _inAppWebViewSettings = InAppWebViewSettings(
@@ -119,6 +271,7 @@ class _LoadWebViewState extends State<LoadWebView>
     allowFileAccessFromFileURLs: true,
     allowUniversalAccessFromFileURLs: true,
     allowsInlineMediaPlayback: true,
+    geolocationEnabled: true,
   );
   @override
   Widget build(BuildContext context) {
@@ -169,6 +322,12 @@ class _LoadWebViewState extends State<LoadWebView>
               },
               onWebViewCreated: (controller) async {
                 webViewController = controller;
+                _startAuthSync();
+
+                controller.addJavaScriptHandler(
+                  handlerName: 'primePrintReceipt',
+                  callback: (arguments) => _handlePrintReceipt(controller, arguments),
+                );
 
                 await cookieManager.setCookie(
                   url: WebUri(widget.url),
@@ -206,13 +365,24 @@ class _LoadWebViewState extends State<LoadWebView>
                   this.url = url.toString();
                 });
               },
+              onPrintRequest: (controller, url, printJobController) async {
+                return false;
+              },
               onLoadStop: (controller, url) async {
                 await _pullToRefreshController.endRefreshing();
+                await _syncAuthFromWebView();
 
                 setState(() {
                   this.url = url.toString();
                   isLoading = false;
                 });
+
+                await webViewController!.evaluateJavascript(
+                  source: '''
+                    window.__PRIME_WEB__ = true;
+                    document.body.classList.add('prime-web-view');
+                  ''',
+                );
                 final mode = context.read<ThemeProvider>().isDarkMode
                     ? "\'dark\'"
                     : "\'light\'";
@@ -308,13 +478,12 @@ class _LoadWebViewState extends State<LoadWebView>
                 );
               },
               onGeolocationPermissionsShowPrompt: (controller, origin) async {
-                await Permission.location.request();
-                return Future.value(
-                  GeolocationPermissionShowPromptResponse(
-                    origin: origin,
-                    allow: true,
-                    retain: true,
-                  ),
+                final granted =
+                    await AppPermissionsService.ensureLocationForWebView();
+                return GeolocationPermissionShowPromptResponse(
+                  origin: origin,
+                  allow: granted,
+                  retain: granted,
                 );
               },
               onPermissionRequest: (controller, request) async {
@@ -325,6 +494,15 @@ class _LoadWebViewState extends State<LoadWebView>
                   if (element == PermissionResourceType.CAMERA) {
                     await Permission.camera.request();
                   }
+                }
+
+                final needsLocation = request.resources.any(
+                  (resource) =>
+                      resource == PermissionResourceType.GEOLOCATION ||
+                      resource.toString().contains('GEOLOCATION'),
+                );
+                if (needsLocation) {
+                  await AppPermissionsService.ensureLocationForWebView();
                 }
 
                 return PermissionResponse(

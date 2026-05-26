@@ -1,13 +1,13 @@
 import 'dart:developer';
 import 'dart:io';
 
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:prime_web/cubit/get_setting_cubit.dart';
 import 'package:prime_web/provider/navigation_bar_provider.dart';
+import 'package:prime_web/services/app_permissions_service.dart';
 import 'package:prime_web/ui/screens/home_screen.dart';
 import 'package:prime_web/ui/screens/setting_screens/settings_screen.dart';
 import 'package:prime_web/ui/widgets/widgets.dart';
@@ -23,9 +23,6 @@ class MyHomePage extends StatefulWidget {
   @override
   State<MyHomePage> createState() => _MyHomePageState();
 }
-
-// Create a global instance of FirebaseMessaging
-final _firebaseMessaging = FirebaseMessaging.instance;
 
 class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   int _selectedIndex = showBottomNavigationBar ? 0 : -1;
@@ -75,7 +72,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       _appLifecycleReactor!.listenToAppStateChanges();
     }
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await requestNotificationPermissions();
+      await AppPermissionsService.requestStartupPermissions();
     });
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
@@ -133,18 +130,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         }
       });
     }
-  }
-
-  Future<void> requestNotificationPermissions() async {
-    // Request permission for iOS
-    await _firebaseMessaging.requestPermission();
-
-    // Request permission for Android
-    await _firebaseMessaging.setForegroundNotificationPresentationOptions(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
   }
 
   void demoInitializeTabs() {

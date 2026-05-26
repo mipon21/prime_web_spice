@@ -3,6 +3,10 @@ import 'dart:io';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:prime_web/firebase_options.dart';
+import 'package:prime_web/services/fcm_background_handler.dart';
+import 'package:prime_web/services/foodappi_fcm_service.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -71,7 +75,11 @@ Future<void> main() async {
     const SystemUiOverlayStyle(statusBarColor: Colors.transparent),
   );
 
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+  await FoodappiFcmService.initialize();
   AdMobService.initialize();
 
   const counter = 0;

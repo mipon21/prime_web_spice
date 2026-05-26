@@ -47,33 +47,28 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDcDq4Ey_lD9d-2Rp0I-DmqjRXr7lvR1Lc',
-    appId: '1:661707570114:android:cd61835d19e7e193a5345b',
-    messagingSenderId: '661707570114',
-    projectId: 'our-nakla',
-    databaseURL: 'https://our-nakla-default-rtdb.firebaseio.com',
-    storageBucket: 'our-nakla.appspot.com',
+    apiKey: 'AIzaSyBCBw92fNxaptKppYI1IPwLjFNCiOO64bc',
+    appId: '1:361744312172:android:dce3dbea20803410faf549',
+    messagingSenderId: '361744312172',
+    projectId: 'spice-box-takeway',
+    storageBucket: 'spice-box-takeway.firebasestorage.app',
   );
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyAHg7lytpH-KEh2viq4hLJnnwkbEKyWAjo',
-    appId: '1:661707570114:web:dffb87c243ced681a5345b',
-    messagingSenderId: '661707570114',
-    projectId: 'our-nakla',
-    authDomain: 'our-nakla.firebaseapp.com',
-    databaseURL: 'https://our-nakla-default-rtdb.firebaseio.com',
-    storageBucket: 'our-nakla.appspot.com',
-    measurementId: 'G-PC5BCEH56T',
-  );
+      apiKey: "AIzaSyB7cf7E5gQwgr1QuTxgWL1eQC2SNefVYFA",
+      authDomain: "spice-box-takeway.firebaseapp.com",
+      projectId: "spice-box-takeway",
+      storageBucket: "spice-box-takeway.firebasestorage.app",
+      messagingSenderId: "361744312172",
+      appId: "1:361744312172:web:b5703a352dd57ef2faf549",
+      measurementId: "G-33PJ6ZLNQ0");
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDE5QFZL5fNpMzo-GgWuA5NQo8XdLTJLas',
-    appId: '1:661707570114:ios:ff8b7a74b16003efa5345b',
-    messagingSenderId: '661707570114',
-    projectId: 'our-nakla',
-    databaseURL: 'https://our-nakla-default-rtdb.firebaseio.com',
-    storageBucket: 'our-nakla.appspot.com',
-    iosBundleId: 'com.my.smart.nakla',
+    apiKey: 'AIzaSyB5DdDeG2hU913hN1OffbfVHCURSrPvaB8',
+    appId: '1:361744312172:ios:a11b0656ea49ccbafaf549',
+    messagingSenderId: '361744312172',
+    projectId: 'spice-box-takeway',
+    storageBucket: 'spice-box-takeway.firebasestorage.app',
+    iosBundleId: 'com.spice.box.skylonit',
   );
-
 }

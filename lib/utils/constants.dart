@@ -12,9 +12,18 @@ export 'strings.dart';
 const String androidPackageName = 'com.my.smart.nakla';
 
 /// DO NOT ADD / AT THE END OF URL
-String baseurl = 'https://admin.smartnakla.com';
+String baseurl = 'https://app.spiceboxscunthorpe.com';
 
 String databaseUrl = '$baseurl/api/';
+
+/// Foodappi Laravel API (single source of truth for transactional push).
+/// Set to your Foodappi public URL — often the same host as the WebView site.
+String foodappiBaseUrl = "https://spiceboxscunthorpe.co.uk";
+
+String foodappiApiUrl = '$foodappiBaseUrl/api/';
+
+/// Must match Foodappi `.env` → `VITE_API_KEY` / `config('app.vite_api_key')`.
+String foodappiApiKey = 'ht8vvd2m-x89z-lc00-asoa-8vegh6mzjlyo';
 
 const appName = 'Smart Nakla';
 
