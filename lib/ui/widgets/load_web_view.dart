@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
 
@@ -55,8 +56,10 @@ class _LoadWebViewState extends State<LoadWebView>
   late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
   bool _validURL = false;
   bool canGoBack = false;
+  bool _appLaunchPromoSignaled = false;
   String? _lastSyncedAuthToken;
   String? _printRestoreUrl;
+  String? _pendingOrderPath;
   Timer? _authSyncTimer;
 
   @override
@@ -119,21 +122,82 @@ class _LoadWebViewState extends State<LoadWebView>
   }
 
   void _navigateToOrderPath(String path) {
-    final baseUri = Uri.tryParse(widget.url);
-    if (baseUri == null || webViewController == null) {
+    if (webViewController == null) {
+      _pendingOrderPath = path;
       return;
     }
 
     final normalizedPath = path.startsWith('/') ? path : '/$path';
+    _openOrderPathInWebView(normalizedPath);
+  }
+
+  Future<void> _flushPendingOrderNavigation() async {
+    final pending =
+        _pendingOrderPath ?? NotificationNavigationService.consumePendingPath();
+
+    if (pending == null || pending.isEmpty) {
+      return;
+    }
+
+    _pendingOrderPath = null;
+    _navigateToOrderPath(pending);
+  }
+
+  Future<void> _openOrderPathInWebView(String normalizedPath) async {
+    final controller = webViewController;
+    if (controller == null) {
+      _pendingOrderPath = normalizedPath;
+      return;
+    }
+
+    // Prefer the in-page bridge added by the Laravel/Vue app. It routes without
+    // reloading the WebView and also handles the logged-out case by stashing the
+    // pending order until after login.
+    try {
+      final handled = await controller.evaluateJavascript(
+        source: '''
+          (function() {
+            var path = ${jsonEncode(normalizedPath)};
+            if (typeof window.__primeDeepLink === 'function') {
+              window.__primeDeepLink(path);
+              return true;
+            }
+            try {
+              localStorage.setItem('prime_pending_deep_link', path);
+            } catch (e) {}
+            return false;
+          })();
+        ''',
+      );
+
+      if (handled == true || handled?.toString() == 'true') {
+        return;
+      }
+    } catch (e, stackTrace) {
+      log('Prime deep-link bridge failed: $e', stackTrace: stackTrace);
+    }
+
+    final baseUri = Uri.tryParse(widget.url);
+    if (baseUri == null) {
+      _pendingOrderPath = normalizedPath;
+      return;
+    }
+
     final basePath = baseUri.path.endsWith('/')
         ? baseUri.path.substring(0, baseUri.path.length - 1)
         : baseUri.path;
+    final appBasePath = basePath.endsWith('/home')
+        ? basePath.substring(0, basePath.length - '/home'.length)
+        : basePath;
 
     final target = baseUri.replace(
-      path: '$basePath$normalizedPath'.replaceAll('//', '/'),
+      path: '$appBasePath$normalizedPath'.replaceAll('//', '/'),
+      queryParameters: {
+        'prime_deep_link': normalizedPath,
+      },
     );
 
-    webViewController!.loadUrl(
+    await controller.loadUrl(
       urlRequest: URLRequest(url: WebUri(target.toString())),
     );
   }
@@ -326,7 +390,8 @@ class _LoadWebViewState extends State<LoadWebView>
 
                 controller.addJavaScriptHandler(
                   handlerName: 'primePrintReceipt',
-                  callback: (arguments) => _handlePrintReceipt(controller, arguments),
+                  callback: (arguments) =>
+                      _handlePrintReceipt(controller, arguments),
                 );
 
                 await cookieManager.setCookie(
@@ -338,6 +403,8 @@ class _LoadWebViewState extends State<LoadWebView>
                   isHttpOnly: false,
                   isSecure: true,
                 );
+
+                await _flushPendingOrderNavigation();
               },
               onScrollChanged: (controller, x, y) async {
                 final currentScrollY = y;
@@ -383,6 +450,21 @@ class _LoadWebViewState extends State<LoadWebView>
                     document.body.classList.add('prime-web-view');
                   ''',
                 );
+
+                await _flushPendingOrderNavigation();
+
+                if (!_appLaunchPromoSignaled) {
+                  _appLaunchPromoSignaled = true;
+                  await webViewController!.evaluateJavascript(
+                    source: '''
+                      try {
+                        sessionStorage.removeItem('promo_banner_shown');
+                        sessionStorage.setItem('prime_app_launch', String(Date.now()));
+                        window.dispatchEvent(new CustomEvent('prime-app-launch'));
+                      } catch (e) {}
+                    ''',
+                  );
+                }
                 final mode = context.read<ThemeProvider>().isDarkMode
                     ? "\'dark\'"
                     : "\'light\'";

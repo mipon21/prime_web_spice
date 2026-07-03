@@ -27,6 +27,11 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
+/build_old/
+# Android/iOS generated (local machine)
+/android/local.properties
+/ios/Flutter/Generated.xcconfig
+/ios/Flutter/flutter_export_environment.sh
 # Symbolication related
 app.*.symbols
 # Obfuscation related

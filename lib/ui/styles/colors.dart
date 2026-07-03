@@ -17,7 +17,7 @@ const primaryColors = MaterialColor(
 );
 
 const primaryColor = Color(0xFF30475E);
-const backgroundColorLightTheme = Color(0xFFF5F5F5);
+const backgroundColorLightTheme = Color(0xFFFFFFFF);
 const backgroundColorDarkTheme = Color(0xFF041C32);
 const accentColor = Color(0xFFC92BCE);
 const splashBackColor1 = Color(0xFF13123F);

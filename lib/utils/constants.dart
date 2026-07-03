@@ -9,7 +9,7 @@ export '../ui/styles/colors.dart';
 export 'icons.dart';
 export 'strings.dart';
 
-const String androidPackageName = 'com.my.smart.nakla';
+const String androidPackageName = 'com.spice.box.skylonit';
 
 /// DO NOT ADD / AT THE END OF URL
 String baseurl = 'https://app.spiceboxscunthorpe.com';
@@ -25,14 +25,14 @@ String foodappiApiUrl = '$foodappiBaseUrl/api/';
 /// Must match Foodappi `.env` → `VITE_API_KEY` / `config('app.vite_api_key')`.
 String foodappiApiKey = 'ht8vvd2m-x89z-lc00-asoa-8vegh6mzjlyo';
 
-const appName = 'Smart Nakla';
+const appName = 'SPICE BOX';
 
 // Here is for only reference you have to change it from panel
 
 String webInitialUrl = '';
 
 //Force Update
-String forceUpdatee = '0'; //OFF
+String forceUpdatee = '1.0.0'; //OFF
 
 String message = '';
 final shareAppMessage = '$message : $storeUrl';
@@ -47,10 +47,10 @@ String bannerAdId = Platform.isAndroid ? '' : '';
 String openAdId = Platform.isAndroid ? '' : '';
 
 //icon to set when get firebase messages
-const String notificationIcon = '@mipmap/ic_launcher_squircle';
+const String notificationIcon = '@mipmap/launcher_icon';
 
 //turn on/off enable storage permission
-const bool isStoragePermissionEnabled = false;
+const bool isStoragePermissionEnabled = true;
 
 List<Map<String, String>> navigationTabs(BuildContext context) => [
       {

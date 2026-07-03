@@ -36,7 +36,7 @@ class FirebaseInitialize {
         ?.createNotificationChannel(channel);
 
     const initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher_squircle');
+        AndroidInitializationSettings('@mipmap/launcher_icon');
     final initializationSettingsDarwin = DarwinInitializationSettings(
       requestBadgePermission: false,
       onDidReceiveLocalNotification:

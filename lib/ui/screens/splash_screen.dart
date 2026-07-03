@@ -153,12 +153,17 @@ class _SplashScreenState extends State<SplashScreen> {
               }),
             ],
             child: Scaffold(
+              bottomNavigationBar: Container(
+                decoration: BoxDecoration(color: Colors.black),
+                padding: const EdgeInsets.symmetric(vertical: 0.0),
+                child: Image.asset('assets/company_logo.png'),
+              ),
               body: SizedBox.expand(
                 child: DecoratedBox(
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
                       // colors: [splashBackColor1, splashBackColor2],
-                      colors: [Colors.white, Colors.white],
+                      colors: [Colors.black, Colors.black],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),

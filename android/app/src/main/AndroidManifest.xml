@@ -55,7 +55,7 @@
 
       
    <application
-        android:label="Smart Nakla"
+        android:label="SPICE BOX"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon"
         android:usesCleartextTraffic="true"
@@ -94,6 +94,10 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <intent-filter>
+                <action android:name="FLUTTER_NOTIFICATION_CLICK" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
 
             <!-- Deep linking -->
             <meta-data android:name="flutter_deeplinking_enabled" android:value="true" />
@@ -101,7 +105,7 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="smartnakla" android:host="order" />
+                <data android:scheme="spicebox" android:host="order" />
             </intent-filter>
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
@@ -118,7 +122,10 @@
             android:value="2" />
         <meta-data
         android:name="com.google.firebase.messaging.default_notification_icon"
-        android:resource="@mipmap/ic_launcher_squircle" />
+        android:resource="@mipmap/launcher_icon" />
+        <meta-data
+        android:name="com.google.firebase.messaging.default_notification_channel_id"
+        android:value="order_notifications" />
          <!-- Sample AdMob app ID: ca-app-pub-3940256099942544~3347511713 -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
