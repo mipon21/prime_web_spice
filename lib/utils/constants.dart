@@ -49,8 +49,9 @@ String openAdId = Platform.isAndroid ? '' : '';
 //icon to set when get firebase messages
 const String notificationIcon = '@mipmap/launcher_icon';
 
-//turn on/off enable storage permission
-const bool isStoragePermissionEnabled = true;
+// Storage/photos permissions removed — profile photo is handled by the
+// website's HTML file input (Android Photo Picker). No broad media access needed.
+const bool isStoragePermissionEnabled = false;
 
 List<Map<String, String>> navigationTabs(BuildContext context) => [
       {

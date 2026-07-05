@@ -1,7 +1,5 @@
 import 'dart:async';
-import 'dart:io';
 
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:prime_web/firebase_options.dart';
@@ -11,7 +9,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:prime_web/cubit/fcm_cubit.dart';
 import 'package:prime_web/cubit/get_onboarding_cubit.dart';
 import 'package:prime_web/cubit/get_setting_cubit.dart';
@@ -26,32 +23,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 late SharedPreferences pref;
-
-Future<bool> enableStoragePermission() async {
-  if (Platform.isIOS) {
-    if (await Permission.storage.isGranted) {
-      return true;
-    } else {
-      return (await Permission.storage.request()).isGranted;
-    }
-  } else {
-    final androidDeviceInfo = await DeviceInfoPlugin().androidInfo;
-
-    if (androidDeviceInfo.version.sdkInt < 33) {
-      if (await Permission.storage.isGranted) {
-        return true;
-      } else {
-        return (await Permission.storage.request()).isGranted;
-      }
-    } else {
-      if (await Permission.photos.isGranted) {
-        return true;
-      } else {
-        return (await Permission.photos.request()).isGranted;
-      }
-    }
-  }
-}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -82,14 +53,7 @@ Future<void> main() async {
   await FoodappiFcmService.initialize();
   AdMobService.initialize();
 
-  const counter = 0;
-
-  if (isStoragePermissionEnabled) {
-    await enableStoragePermission();
-  }
-
   await SharedPreferences.getInstance().then((prefs) {
-    prefs.setInt('counter', counter);
     final bool isDarkTheme;
     if (prefs.getBool('isDarkTheme') ?? ThemeMode.system == ThemeMode.dark) {
       isDarkTheme = true;

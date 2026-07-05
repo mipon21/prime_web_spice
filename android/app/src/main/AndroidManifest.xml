@@ -27,27 +27,28 @@
             "android.support.customtabs.action.CustomTabsService" />
       </intent>
       </queries>
-      <uses-permission android:name="android.permission.INTERNET" /> <!-- this is mandatory -->
+      <uses-permission android:name="android.permission.INTERNET" />
       <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-      
-      <!-- uncomment required permissions here -->
- 
-      <!-- start enable below 5 permissions for storage permission in Android 13 -->
-          <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
-                <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
-                <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
-                <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>
-                <uses-permission android:name="android.permission.READ_MEDIA_AUDIO"/> 
-      <!-- end permission for storage in android 13 -->
+      <!-- Remove broad media permissions — profile photo is handled by the
+           website's HTML file input which opens Android's built-in photo picker.
+           No native gallery or media-library access is needed. -->
+      <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"
+          tools:node="remove" />
+      <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"
+          tools:node="remove" />
+      <uses-permission android:name="android.permission.READ_MEDIA_AUDIO"
+          tools:node="remove" />
+      <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+          tools:node="remove" />
+      <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+          tools:node="remove" />
 
       <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
       <uses-permission android:name="android.permission.CAMERA" />
-      <uses-feature android:name="android.hardware.camera" /> 
+      <uses-feature android:name="android.hardware.camera" />
       <uses-permission android:name="android.permission.RECORD_AUDIO" />
       <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
-      <uses-permission android:name="android.permission.VIDEO_CAPTURE" />
-      <uses-permission android:name="android.permission.AUDIO_CAPTURE" />
       <uses-permission android:name="android.permission.BLUETOOTH" />
 
       <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
@@ -58,8 +59,7 @@
         android:label="SPICE BOX"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon"
-        android:usesCleartextTraffic="true"
-        android:requestLegacyExternalStorage="true">
+        android:usesCleartextTraffic="true">
         
         <!-- to allow file permission-->
       <provider

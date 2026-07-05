@@ -14,7 +14,6 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:prime_web/cubit/get_setting_cubit.dart';
-import 'package:prime_web/main.dart';
 import 'package:prime_web/provider/navigation_bar_provider.dart';
 import 'package:prime_web/provider/theme_provider.dart';
 import 'package:prime_web/services/app_permissions_service.dart';
@@ -650,55 +649,45 @@ class _LoadWebViewState extends State<LoadWebView>
               onCloseWindow: (controller) async {},
               onDownloadStartRequest:
                   (controller, onDownloadStartRequest) async {
-                await enableStoragePermission().then((status) async {
                   final url = onDownloadStartRequest.url.toString();
 
-                  if (status == true) {
-                    try {
-                      final dio = Dio();
-                      String fileName;
-                      if (url.lastIndexOf('?') > 0) {
-                        fileName = url.substring(
-                          url.lastIndexOf('/') + 1,
-                          url.lastIndexOf('?'),
-                        );
-                      } else {
-                        fileName = url.substring(
-                          url.lastIndexOf('/') + 1,
-                        );
-                      }
-                      final savePath = await getFilePath(fileName);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Downloading file..'),
-                        ),
+                  try {
+                    final dio = Dio();
+                    String fileName;
+                    if (url.lastIndexOf('?') > 0) {
+                      fileName = url.substring(
+                        url.lastIndexOf('/') + 1,
+                        url.lastIndexOf('?'),
                       );
-                      await dio.download(
-                        url,
-                        savePath,
-                        onReceiveProgress: (rec, total) {},
-                      );
-
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Download Complete'),
-                        ),
-                      );
-                    } on Exception catch (_) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Downloading failed'),
-                        ),
+                    } else {
+                      fileName = url.substring(
+                        url.lastIndexOf('/') + 1,
                       );
                     }
-                  } else {
+                    final savePath = await getFilePath(fileName);
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Permission denied'),
+                        content: Text('Downloading file..'),
+                      ),
+                    );
+                    await dio.download(
+                      url,
+                      savePath,
+                      onReceiveProgress: (rec, total) {},
+                    );
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Download Complete'),
+                      ),
+                    );
+                  } on Exception catch (_) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Downloading failed'),
                       ),
                     );
                   }
-                });
               },
               onUpdateVisitedHistory: (controller, url, androidIsReload) async {
                 print(
@@ -783,38 +772,17 @@ class _LoadWebViewState extends State<LoadWebView>
     }
   }
 
-  Future<bool> requestPermission() async {
-    final status = await Permission.storage.status;
-
-    if (status == PermissionStatus.granted) {
-      return true;
-    } else if (status != PermissionStatus.granted) {
-      //
-      final result = await Permission.storage.request();
-      if (result == PermissionStatus.granted) {
-        return true;
-      } else {
-        // await openAppSettings();
-        return false;
-      }
-    }
-    return true;
-  }
-
   Future<String> getFilePath(String uniqueFileName) async {
-    String? externalStorageDirPath;
+    String? dirPath;
     if (Platform.isAndroid) {
-      try {
-        externalStorageDirPath = '/storage/emulated/0/Download';
-      } catch (e) {
-        final directory = await getExternalStorageDirectory();
-        externalStorageDirPath = directory?.path;
-      }
+      // Use app-private Downloads directory — no storage permissions needed.
+      final directory = await getExternalStorageDirectory();
+      dirPath = directory?.path ?? (await getApplicationDocumentsDirectory()).path;
     } else if (Platform.isIOS) {
-      externalStorageDirPath =
+      dirPath =
           (await getApplicationDocumentsDirectory()).absolute.path;
     }
 
-    return '$externalStorageDirPath/$uniqueFileName';
+    return '$dirPath/$uniqueFileName';
   }
 }
