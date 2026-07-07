@@ -46,3 +46,7 @@ app.*.map.json
 
 # FVM Version Cache
 .fvm/
+
+# Local signing configuration and keys
+android/app/upload-keystore.jks
+android/key.properties
