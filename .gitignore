@@ -50,3 +50,10 @@ app.*.map.json
 # Local signing configuration and keys
 android/app/upload-keystore.jks
 android/key.properties
+
+# Local build artifacts and gradle caches
+.gradle/
+**/android/.gradle/
+**/android/app/.cxx/
+**/.cxx/
+build_old/
