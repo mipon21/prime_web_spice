@@ -12,7 +12,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:prime_web/cubit/get_setting_cubit.dart';
 import 'package:prime_web/provider/navigation_bar_provider.dart';
 import 'package:prime_web/provider/theme_provider.dart';
@@ -568,27 +567,26 @@ class _LoadWebViewState extends State<LoadWebView>
                 );
               },
               onPermissionRequest: (controller, request) async {
+                final resources = <PermissionResourceType>[];
+                bool needsLocation = false;
+
                 for (final element in request.resources) {
-                  if (element == PermissionResourceType.MICROPHONE) {
-                    await Permission.microphone.request();
-                  }
-                  if (element == PermissionResourceType.CAMERA) {
-                    await Permission.camera.request();
+                  if (element == PermissionResourceType.GEOLOCATION ||
+                      element.toString().contains('GEOLOCATION')) {
+                    needsLocation = true;
+                    resources.add(element);
                   }
                 }
 
-                final needsLocation = request.resources.any(
-                  (resource) =>
-                      resource == PermissionResourceType.GEOLOCATION ||
-                      resource.toString().contains('GEOLOCATION'),
-                );
                 if (needsLocation) {
                   await AppPermissionsService.ensureLocationForWebView();
                 }
 
                 return PermissionResponse(
-                  action: PermissionResponseAction.GRANT,
-                  resources: request.resources,
+                  action: resources.isNotEmpty
+                      ? PermissionResponseAction.GRANT
+                      : PermissionResponseAction.DENY,
+                  resources: resources,
                 );
               },
               onProgressChanged: (controller, progress) {
