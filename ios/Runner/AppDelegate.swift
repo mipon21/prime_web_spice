@@ -1,7 +1,6 @@
 import UIKit
 import Flutter
 import Firebase
-import AppTrackingTransparency
 
 @UIApplicationMain
 @objc class AppDelegate: FlutterAppDelegate, MessagingDelegate {
@@ -40,12 +39,6 @@ import AppTrackingTransparency
       
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
-     override func applicationDidBecomeActive(_ application: UIApplication) {
-        if #available(iOS 15.0, *) {
-           ATTrackingManager.requestTrackingAuthorization(completionHandler: { status in
-           })
-        }
-    }
 }
 
 
