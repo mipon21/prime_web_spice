@@ -325,8 +325,6 @@ class _LoadWebViewState extends State<LoadWebView>
     mediaPlaybackRequiresUserGesture: false,
     useOnDownloadStart: true,
     javaScriptCanOpenWindowsAutomatically: true,
-    userAgent:
-        'Mozilla/5.0 (Linux; Android 9; LG-H870 Build/PKQ1.190522.001) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/83.0.4103.106 Mobile Safari/537.36',
     verticalScrollBarEnabled: false,
     horizontalScrollBarEnabled: false,
     transparentBackground: true,
@@ -425,6 +423,7 @@ class _LoadWebViewState extends State<LoadWebView>
               onLoadStart: (controller, url) async {
                 setState(() {
                   isLoading = true;
+                  progress = 0;
                   showErrorPage = false;
                   slowInternetPage = false;
                   this.url = url.toString();
@@ -439,7 +438,9 @@ class _LoadWebViewState extends State<LoadWebView>
 
                 setState(() {
                   this.url = url.toString();
-                  isLoading = false;
+                  if (progress >= 0.95 || progress == 0) {
+                    isLoading = false;
+                  }
                 });
 
                 await webViewController!.evaluateJavascript(

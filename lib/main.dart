@@ -50,7 +50,9 @@ Future<void> main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-  await FoodappiFcmService.initialize();
+  unawaited(FoodappiFcmService.initialize().catchError((e) {
+    print('[FCM] Background initialization error: $e');
+  }));
   AdMobService.initialize();
 
   await SharedPreferences.getInstance().then((prefs) {

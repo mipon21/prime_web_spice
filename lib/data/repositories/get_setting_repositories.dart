@@ -9,17 +9,18 @@ class Getsetting {
         useAuthToken: false,
       );
 
-      final data = await result['data'];
+      final data = result['data'];
 
       if (result['error'] == false) {
       
         return GetSettingModel.fromJson(data);
       } else {
         print('this is get setting data error is true');
+        throw 'this is get setting data error is true';
       }
     } catch (e, st) {
       print('This Get Setting is error : $e,$st');
+      rethrow;
     }
-    return GetSettingModel.fromJson({});
   }
 }

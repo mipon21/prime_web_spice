@@ -67,7 +67,7 @@ class GetSettingCubit extends Cubit<GetSettingState> {
         GetSettingStateInSussess(useAuthtoken: false, settingdata: result),
       );
     } catch (e) {
-      GetSettingInError(error: e.toString());
+      emit(GetSettingInError(error: e.toString()));
     }
     return GetSettingModel.fromJson({});
   }

@@ -27,6 +27,8 @@ class _SplashScreenState extends State<SplashScreen> {
   bool isOnboardingLoaded = false;
   bool isConnected = true;
   bool isLoading = false;
+  Timer? _safetyTimeoutTimer;
+  bool _hasNavigatedOrErrored = false;
 
   @override
   void initState() {
@@ -36,15 +38,25 @@ class _SplashScreenState extends State<SplashScreen> {
     _checkConnectivity();
   }
 
+  @override
+  void dispose() {
+    _safetyTimeoutTimer?.cancel();
+    super.dispose();
+  }
+
   Future<void> _checkConnectivity() async {
+    _hasNavigatedOrErrored = false;
+    _safetyTimeoutTimer?.cancel();
+    _safetyTimeoutTimer = Timer(const Duration(seconds: 12), () {
+      print('Splash screen safety timeout triggered.');
+      _handleError();
+    });
+
     setState(() {
       isLoading = true;
     });
     if (await NoInternet.isUserOffline()) {
-      setState(() {
-        isConnected = false;
-        isLoading = false;
-      });
+      _handleError();
     } else {
       setState(() {
         isConnected = true;
@@ -55,11 +67,20 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _initializeSettingsAndOnboarding() async {
-    await Future.wait([
-      _getSettingCubit.getSetting(),
-      _getOnbordingCubit.getOnboardingScreens(),
-      context.read<SetFcmCubit>().setFcm(),
-    ]);
+    // Register FCM asynchronously so it does not block the UI or settings/onboarding
+    context.read<SetFcmCubit>().setFcm().catchError((e) {
+      print('FCM initialization error in splash: $e');
+    });
+
+    try {
+      await Future.wait([
+        _getSettingCubit.getSetting(),
+        _getOnbordingCubit.getOnboardingScreens(),
+      ]);
+    } catch (e) {
+      print('Error during settings/onboarding initialization: $e');
+      _handleError();
+    }
   }
 
   void _checkBothLoaded() {
@@ -69,41 +90,58 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> startTimer() async {
-    final pref = await SharedPreferences.getInstance();
-    final state = _getSettingCubit.state;
-    if (state is GetSettingStateInSussess) {
-      final maintenanceMode = state.settingdata.appMaintenanceMode;
-      if (maintenanceMode == "1") {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => MaintenanceModeScreen(),
-          ),
-        );
-      } else {
-        if (_getSettingCubit.onboardingStatus() &&
-            (pref.getBool('isFirstTimeUser') ?? true) &&
-            _getOnbordingCubit.onBoardingListIsNotEmpty()) {
-          final onboardingStyle = _getSettingCubit.onbordingStyle();
+    if (_hasNavigatedOrErrored) return;
+    try {
+      final state = _getSettingCubit.state;
+      if (state is GetSettingStateInSussess) {
+        _hasNavigatedOrErrored = true;
+        _safetyTimeoutTimer?.cancel();
+        final pref = await SharedPreferences.getInstance();
+        final maintenanceMode = state.settingdata.appMaintenanceMode;
+        if (maintenanceMode == "1") {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-                builder: (context) => OnboardingScreen(style: onboardingStyle)),
-          );
-        } else {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => MyHomePage(
-                webUrl: webInitialUrl,
-              ),
+              builder: (context) => MaintenanceModeScreen(),
             ),
           );
+        } else {
+          if (_getSettingCubit.onboardingStatus() &&
+              (pref.getBool('isFirstTimeUser') ?? true) &&
+              _getOnbordingCubit.onBoardingListIsNotEmpty()) {
+            final onboardingStyle = _getSettingCubit.onbordingStyle();
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => OnboardingScreen(style: onboardingStyle)),
+            );
+          } else {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => MyHomePage(
+                  webUrl: webInitialUrl,
+                ),
+              ),
+            );
+          }
         }
+      } else {
+        _handleError();
       }
-    } else if (state is GetSettingInError) {
-      print('Error fetching settings: ${state.error}');
+    } catch (e, st) {
+      print('Exception in startTimer: $e\n$st');
+      _handleError();
     }
+  }
+
+  void _handleError() {
+    if (_hasNavigatedOrErrored) return;
+    _safetyTimeoutTimer?.cancel();
+    setState(() {
+      isConnected = false;
+      isLoading = false;
+    });
   }
 
   Future<void> _retryConnection() async {

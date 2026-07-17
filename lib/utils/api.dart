@@ -36,7 +36,11 @@ class ApiCall {
     required bool useAuthtoken,
   }) async {
     try {
-      final dio = Dio();
+      final dio = Dio(BaseOptions(
+        connectTimeout: const Duration(seconds: 10),
+        receiveTimeout: const Duration(seconds: 10),
+        sendTimeout: const Duration(seconds: 10),
+      ));
       final formData = FormData.fromMap(body, ListFormat.multiCompatible);
 
       print('API Called POST: $url with $body');
@@ -52,13 +56,12 @@ class ApiCall {
 
       return response.data;
     } on DioException catch (e) {
-      ApiException(e.toString());
+      throw ApiException(e.toString());
     } on ApiException catch (e) {
       throw ApiException(e.toString());
     } catch (e) {
       throw ApiException(e.toString());
     }
-    return {};
   }
 
   static Future<Map<String, dynamic>> getapi({
@@ -67,7 +70,11 @@ class ApiCall {
     Map<String, dynamic>? queryParameters,
   }) async {
     try {
-      final dio = Dio();
+      final dio = Dio(BaseOptions(
+        connectTimeout: const Duration(seconds: 10),
+        receiveTimeout: const Duration(seconds: 10),
+        sendTimeout: const Duration(seconds: 10),
+      ));
 
       log('calling api $url');
 
@@ -91,11 +98,12 @@ class ApiCall {
         print(e.response?.statusCode);
         print(e.response?.statusMessage);
       }
+      throw ApiException(e.toString());
     } on ApiException catch (e) {
       throw ApiException(e.errorMessage);
     } catch (e) {
       print(e);
+      throw ApiException(e.toString());
     }
-    return {};
   }
 }
