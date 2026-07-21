@@ -332,6 +332,7 @@ class _LoadWebViewState extends State<LoadWebView>
     allowUniversalAccessFromFileURLs: true,
     allowsInlineMediaPlayback: true,
     geolocationEnabled: true,
+    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 PrimeWeb/1.0',
   );
   @override
   Widget build(BuildContext context) {
